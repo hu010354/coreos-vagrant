@@ -28,8 +28,9 @@ end
 
 Vagrant.configure("2") do |config|
   config.vm.box = "coreos-%s" % $update_channel
-  config.vm.box_version = ">= 308.0.1"
+  #config.vm.box_version = ">= 308.0.1"
   config.vm.box_url = "http://%s.release.core-os.net/amd64-usr/current/coreos_production_vagrant.json" % $update_channel
+  #config.vm.synced_folder "d:/project", "/mnt/project", type: "smb"
 
   config.vm.provider :vmware_fusion do |vb, override|
     override.vm.box_url = "http://%s.release.core-os.net/amd64-usr/current/coreos_production_vagrant_vmware_fusion.json" % $update_channel
@@ -48,7 +49,7 @@ Vagrant.configure("2") do |config|
   end
 
   (1..$num_instances).each do |i|
-    config.vm.define vm_name = "core-%02d" % i do |config|
+    config.vm.define vm_name = "core%02d" % i do |config|
       config.vm.hostname = vm_name
 
       if $enable_serial_logging

@@ -1,0 +1,71 @@
+#cloud-config
+
+coreos:
+  etcd:
+    # generate a new token for each unique cluster from https://discovery.etcd.io/new
+    # WARNING: replace each time you 'vagrant destroy'
+    # discovery: https://discovery.etcd.io/<token>
+    # discovery: https://discovery.etcd.io/b6f8b794e0573e8d1e8c60f4974d2c29
+    addr: $public_ipv4:4001
+    peer-addr: $public_ipv4:7001
+  fleet:
+    public-ip: $public_ipv4
+  units:
+    - name: etcd.service
+      command: start
+    - name: fleet.service
+      command: start
+    - name: mnt-sdc1.mount
+      command: start
+      content: |
+        [Unit]
+        Description=Mount data device
+        [Mount]
+        What=/dev/sdc1
+        Where=/mnt/sdc1
+        Type=ext4
+    - name: var-lib-docker.mount
+      command: start
+      content: |
+        [Unit]
+        Description=Mount docker device
+        Before=docker.service
+        [Mount]
+        What=/dev/sdb1
+        Where=/var/lib/docker
+        Type=ext4
+    - name: docker.service
+      command: restart
+      content: |
+        [Unit]
+        Description=Docker Application Container Engine
+        Documentation=http://docs.docker.io
+        After=network.target
+        [Service]
+        ExecStartPre=/bin/mount --make-rprivate /
+        ExecStart=/usr/bin/docker -d --host=fd://
+        [Install]
+        WantedBy=multi-user.target
+    - name: docker-tcp.socket
+      command: start
+      enable: true
+      content: |
+        [Unit]
+        Description=Docker Socket for the API
+        [Socket]
+        ListenStream=2375
+        Service=docker.service
+        BindIPv6Only=both
+
+        [Install]
+        WantedBy=sockets.target
+users:
+  - name: vagrant
+    passwd: $6$rounds=4096$1yK1EZwxsITIfyz$xn1by/JC9h/qQCHyQvcuYtBbrcdW13bXdF15m/ELaEjBI.LD/69M7KL0x1SqnKtbs3MW0rPxpcCJOemHWQSpz.
+    groups:
+      - sudo
+      - docker
+    ssh-authorized-keys:
+      - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCkGY5zXtpsN549gqJvqB+FNBeeYbW5oNuvp4jZ4XgughILwx3wPLY4YRv0jnPilnumx4dVI/hu/23KBE8QcDYOPkzpc/aIyYFzx9NhyS5B9y9l9T7t1h3PbK7vDZDKM4m/zkVL4a/X4lmdzx7ds7KJ3a/siMSPM/9i5Qs6/WeHAE4qnwiAgsruA63xo5QWBcLd+ock+P7fqsxcFV6DM7VQFa9iutz2cENdG93kzVVC6UGji4A+NwF8Qa/10b6V0EbRymeWVHEGbJWoyUnAdukJ/gvC2B072X6X1X9/C0pouKau01RARLzUk65RqLSt+pjHuySgS8YNKySRWod+C4oL hucw@HUCW
+  - name: core
+    passwd: $6$rounds=4096$8WNluKA7d18P$LuLsvuJ0I6d2YNGgxw1VfUFtmj5DBF5crbk6w.Z27zH6QjNCjCB9NJ.I4UmN2XRZIB2/1UWradLIlbwa8g/80/
